@@ -1,4 +1,4 @@
-import { Search, Settings, HelpCircle, Sparkles, Github, Star } from 'lucide-react';
+import { Search, Settings, HelpCircle, Sparkles, LayoutDashboard } from 'lucide-react';
 import { useAppState } from '../hooks/useAppState';
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { GraphNode } from '../core/graph/types';
@@ -27,6 +27,8 @@ export const Header = ({ onFocusNode }: HeaderProps) => {
     projectName,
     graph,
     openChatPanel,
+    isArchitectureOpen,
+    setArchitectureOpen,
     isRightPanelOpen,
     rightPanelTab,
     setSettingsPanelOpen,
@@ -196,18 +198,20 @@ export const Header = ({ onFocusNode }: HeaderProps) => {
 
       {/* Right section */}
       <div className="flex items-center gap-2">
-        {/* GitHub Star Button */}
-        <a
-          href="https://github.com/3301x2/MaestroNexus"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-2 px-3.5 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 rounded-lg text-white text-sm font-medium shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 group"
+        {/* Architecture Button */}
+        <button
+          onClick={() => setArchitectureOpen(!isArchitectureOpen)}
+          className={`
+            flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium transition-all
+            ${isArchitectureOpen
+              ? 'bg-violet-600 text-white shadow-lg shadow-violet-500/20'
+              : 'bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white shadow-lg hover:shadow-xl hover:-translate-y-0.5'
+            }
+          `}
         >
-          <Github className="w-4 h-4" />
-          <span className="hidden sm:inline">Star if cool</span>
-          <Star className="w-3.5 h-3.5 group-hover:fill-yellow-300 group-hover:text-yellow-300 transition-all" />
-          <span className="hidden sm:inline">✨</span>
-        </a>
+          <LayoutDashboard className="w-4 h-4" />
+          <span>Architecture</span>
+        </button>
 
         {/* Stats */}
         {graph && (

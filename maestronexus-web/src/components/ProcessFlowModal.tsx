@@ -5,7 +5,7 @@
  */
 
 import { useEffect, useRef, useCallback, useState } from 'react';
-import { X, GitBranch, Copy, Focus, Layers, ZoomIn, ZoomOut } from 'lucide-react';
+import { X, GitBranch, Copy, Focus, Layers, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
 import mermaid from 'mermaid';
 import { ProcessData, generateProcessMermaid } from '../lib/mermaid-generator';
 
@@ -13,6 +13,7 @@ interface ProcessFlowModalProps {
     process: ProcessData | null;
     onClose: () => void;
     onFocusInGraph?: (nodeIds: string[], processId: string) => void;
+    onExpand?: () => void;
     isFullScreen?: boolean;
 }
 
@@ -52,7 +53,7 @@ mermaid.parseError = (err) => {
     console.debug('Mermaid parse error (suppressed):', err);
 };
 
-export const ProcessFlowModal = ({ process, onClose, onFocusInGraph, isFullScreen = false }: ProcessFlowModalProps) => {
+export const ProcessFlowModal = ({ process, onClose, onFocusInGraph, onExpand, isFullScreen = false }: ProcessFlowModalProps) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const diagramRef = useRef<HTMLDivElement>(null);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -288,6 +289,15 @@ export const ProcessFlowModal = ({ process, onClose, onFocusInGraph, isFullScree
                         <Copy className="w-4 h-4" />
                         Copy Mermaid
                     </button>
+                    {onExpand && (
+                        <button
+                            onClick={onExpand}
+                            className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-violet-600 hover:bg-violet-500 rounded-lg transition-all shadow-lg shadow-violet-500/20"
+                        >
+                            <Maximize2 className="w-4 h-4" />
+                            Open as Page
+                        </button>
+                    )}
                     <button
                         onClick={onClose}
                         className="px-5 py-2.5 text-sm font-medium text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-all"

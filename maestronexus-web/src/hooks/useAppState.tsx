@@ -74,6 +74,10 @@ interface AppState {
   openCodePanel: () => void;
   openChatPanel: () => void;
 
+  // Architecture overlay
+  isArchitectureOpen: boolean;
+  setArchitectureOpen: (open: boolean) => void;
+
   // Filters
   visibleLabels: NodeLabel[];
   toggleLabelVisibility: (label: NodeLabel) => void;
@@ -197,6 +201,9 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
     setRightPanelOpen(true);
     setRightPanelTab('chat');
   }, []);
+
+  // Architecture overlay
+  const [isArchitectureOpen, setArchitectureOpen] = useState(false);
 
   // Filters
   const [visibleLabels, setVisibleLabels] = useState<NodeLabel[]>(DEFAULT_VISIBLE_LABELS);
@@ -1058,6 +1065,8 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
     setRightPanelTab,
     openCodePanel,
     openChatPanel,
+    isArchitectureOpen,
+    setArchitectureOpen,
     visibleLabels,
     toggleLabelVisibility,
     visibleEdgeTypes,

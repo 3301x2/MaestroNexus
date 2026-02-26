@@ -4,6 +4,7 @@ import tailwindcss from '@tailwindcss/vite';
 import wasm from 'vite-plugin-wasm';
 import topLevelAwait from 'vite-plugin-top-level-await';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
+import { previewProxyPlugin } from './src/lib/preview-proxy-plugin';
 import path from 'path';
 
 export default defineConfig({
@@ -12,6 +13,7 @@ export default defineConfig({
     tailwindcss(),
     wasm(),
     topLevelAwait(),
+    previewProxyPlugin(),
     // Copy kuzu-wasm worker file to assets folder for production
     viteStaticCopy({
       targets: [
@@ -40,24 +42,16 @@ export default defineConfig({
     exclude: ['kuzu-wasm'],
     include: ['buffer'],
   },
-  // Required for KuzuDB WASM (SharedArrayBuffer needs Cross-Origin Isolation)
+  // Cross-origin isolation is disabled so the preview iframe can load
+  // with cookies/auth intact. KuzuDB WASM has a lazy-import fallback
+  // for when SharedArrayBuffer is unavailable (single-threaded mode).
   server: {
-    headers: {
-      'Cross-Origin-Opener-Policy': 'same-origin',
-      'Cross-Origin-Embedder-Policy': 'require-corp',
-    },
     // Allow serving files from node_modules
     fs: {
       allow: ['..'],
     },
   },
-  // Also set for preview/production builds
-  preview: {
-    headers: {
-      'Cross-Origin-Opener-Policy': 'same-origin',
-      'Cross-Origin-Embedder-Policy': 'require-corp',
-    },
-  },
+  preview: {},
   // Worker configuration
   worker: {
     format: 'es',

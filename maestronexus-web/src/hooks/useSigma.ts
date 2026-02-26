@@ -193,11 +193,14 @@ export const useSigma = (options: UseSigmaOptions = {}): UseSigmaReturn => {
   // Initialize Sigma ONCE
   useEffect(() => {
     if (!containerRef.current) return;
+    // Guard against zero-dimension container (e.g. when Architecture overlay hides the canvas)
+    if (containerRef.current.offsetWidth === 0 || containerRef.current.offsetHeight === 0) return;
 
     const graph = new Graph<SigmaNodeAttributes, SigmaEdgeAttributes>();
     graphRef.current = graph;
 
     const sigma = new Sigma(graph, containerRef.current, {
+      allowInvalidContainer: true,
       renderLabels: true,
       labelFont: 'JetBrains Mono, monospace',
       labelSize: 11,

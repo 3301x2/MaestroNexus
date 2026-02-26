@@ -1,3 +1,4 @@
+import { Github, Star } from 'lucide-react';
 import { useAppState } from '../hooks/useAppState';
 
 export const StatusBar = () => {
@@ -44,15 +45,27 @@ export const StatusBar = () => {
         )}
       </div>
 
-      {/* Center - Eternity Fine */}
-      <a
-        href="https://eternityfine.com/"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="group flex items-center gap-2 px-3 py-1 rounded-full bg-accent/10 border border-accent/20 hover:bg-accent/20 hover:border-accent/40 hover:scale-[1.02] transition-all duration-200 cursor-pointer"
-      >
-        <span className="text-[11px] font-medium text-accent group-hover:text-accent-dim transition-colors">A product of Eternity Fine</span>
-      </a>
+      {/* Center - Eternity Fine + GitHub Star */}
+      <div className="flex items-center gap-3">
+        <a
+          href="https://eternityfine.com/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group flex items-center gap-2 px-3 py-1 rounded-full bg-accent/10 border border-accent/20 hover:bg-accent/20 hover:border-accent/40 hover:scale-[1.02] transition-all duration-200 cursor-pointer"
+        >
+          <span className="text-[11px] font-medium text-accent group-hover:text-accent-dim transition-colors">A product of Eternity Fine</span>
+        </a>
+        <a
+          href="https://github.com/3301x2/MaestroNexus"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 hover:bg-purple-500/20 hover:border-purple-500/40 hover:scale-[1.02] transition-all duration-200 cursor-pointer"
+        >
+          <Github className="w-3 h-3 text-purple-400 group-hover:text-purple-300" />
+          <span className="text-[11px] font-medium text-purple-400 group-hover:text-purple-300 transition-colors">Star if cool</span>
+          <Star className="w-3 h-3 text-purple-400 group-hover:fill-yellow-300 group-hover:text-yellow-300 transition-all" />
+        </a>
+      </div>
 
       {/* Right - Stats */}
       <div className="flex items-center gap-3">

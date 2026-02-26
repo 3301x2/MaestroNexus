@@ -9,6 +9,7 @@ import { SettingsPanel } from './components/SettingsPanel';
 import { StatusBar } from './components/StatusBar';
 import { FileTreePanel } from './components/FileTreePanel';
 import { CodeReferencesPanel } from './components/CodeReferencesPanel';
+import { ArchitecturePanel } from './components/ArchitecturePanel';
 import { FileEntry } from './services/zip';
 import { getActiveProviderConfig } from './core/llm/settings-service';
 import { useBackend } from './hooks/useBackend';
@@ -36,6 +37,7 @@ const AppContent = () => {
     codeReferences,
     selectedNode,
     isCodePanelOpen,
+    isArchitectureOpen,
     setBackendMode,
     setBackendRepo,
   } = useAppState();
@@ -227,6 +229,9 @@ const AppContent = () => {
         {/* Graph area - takes remaining space */}
         <div className="flex-1 relative min-w-0">
           <GraphCanvas ref={graphCanvasRef} />
+
+          {/* Architecture overlay - covers the graph canvas */}
+          {isArchitectureOpen && <ArchitecturePanel />}
 
           {/* Code References Panel (overlay) - does NOT resize the graph, it overlaps on top */}
           {isCodePanelOpen && (codeReferences.length > 0 || !!selectedNode) && (

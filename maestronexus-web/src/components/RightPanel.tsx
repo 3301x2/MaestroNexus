@@ -234,9 +234,6 @@ export const RightPanel = () => {
           >
             <GitBranch className="w-3.5 h-3.5" />
             <span>Processes</span>
-            <span className="text-[10px] px-1.5 py-0.5 bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white rounded-full font-semibold">
-              NEW
-            </span>
           </button>
         </div>
 

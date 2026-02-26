@@ -6,6 +6,7 @@ description: Navigate unfamiliar code using MaestroNexus knowledge graph
 # Exploring Codebases with MaestroNexus
 
 ## When to Use
+
 - "How does authentication work?"
 - "What's the project structure?"
 - "Show me the main components"
@@ -37,16 +38,17 @@ description: Navigate unfamiliar code using MaestroNexus knowledge graph
 
 ## Resources
 
-| Resource | What you get |
-|----------|-------------|
-| `maestronexus://repo/{name}/context` | Stats, staleness warning (~150 tokens) |
-| `maestronexus://repo/{name}/clusters` | All functional areas with cohesion scores (~300 tokens) |
-| `maestronexus://repo/{name}/cluster/{name}` | Area members with file paths (~500 tokens) |
-| `maestronexus://repo/{name}/process/{name}` | Step-by-step execution trace (~200 tokens) |
+| Resource                                | What you get                                            |
+| --------------------------------------- | ------------------------------------------------------- |
+| `maestronexus://repo/{name}/context`        | Stats, staleness warning (~150 tokens)                  |
+| `maestronexus://repo/{name}/clusters`       | All functional areas with cohesion scores (~300 tokens) |
+| `maestronexus://repo/{name}/cluster/{name}` | Area members with file paths (~500 tokens)              |
+| `maestronexus://repo/{name}/process/{name}` | Step-by-step execution trace (~200 tokens)              |
 
 ## Tools
 
 **maestronexus_query** — find execution flows related to a concept:
+
 ```
 maestronexus_query({query: "payment processing"})
 → Processes: CheckoutFlow, RefundFlow, WebhookHandler
@@ -54,6 +56,7 @@ maestronexus_query({query: "payment processing"})
 ```
 
 **maestronexus_context** — 360-degree view of a symbol:
+
 ```
 maestronexus_context({name: "validateUser"})
 → Incoming calls: loginHandler, apiMiddleware
