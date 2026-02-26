@@ -588,8 +588,18 @@ export const useSigma = (options: UseSigmaOptions = {}): UseSigmaReturn => {
   }, []);
 
   const resetZoom = useCallback(() => {
-    sigmaRef.current?.getCamera().animatedReset({ duration: 300 });
+    const sigma = sigmaRef.current;
+    if (!sigma) return;
+
+    // Clear selection first so node sizes normalize before fitting
     setSelectedNode(null);
+
+    // animatedReset goes to {x:0.5, y:0.5, ratio:1, angle:0}
+    // which is Sigma's default "show everything" state
+    sigma.getCamera().animatedReset({ duration: 300 });
+
+    // Force a refresh after animation so node/edge reducers update
+    setTimeout(() => sigma.refresh(), 320);
   }, [setSelectedNode]);
 
   const startLayout = useCallback(() => {

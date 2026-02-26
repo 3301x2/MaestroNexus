@@ -48,8 +48,8 @@ coverage/
 # Claude Code worktrees
 .claude/worktrees/
 
-# Assets (screenshots, images)
-assets/
+# Assets (root-level screenshots, images)
+/assets/
 
 # Generated files (should not be indexed)
 repomix-output*

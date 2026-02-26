@@ -3,6 +3,7 @@ import { useAppState } from '../hooks/useAppState';
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { GraphNode } from '../core/graph/types';
 import { EmbeddingStatus } from './EmbeddingStatus';
+import maestronexusIcon from '../assets/maestronexus-icon.svg';
 
 // Color mapping for node types in search results
 const NODE_TYPE_COLORS: Record<string, string> = {
@@ -111,9 +112,7 @@ export const Header = ({ onFocusNode }: HeaderProps) => {
       <div className="flex items-center gap-4">
         {/* Logo */}
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 flex items-center justify-center bg-gradient-to-br from-accent to-node-interface rounded-md shadow-glow text-white text-sm font-bold">
-            ◇
-          </div>
+          <img src={maestronexusIcon} alt="MaestroNexus" className="w-7 h-7 rounded-md shadow-glow" />
           <span className="font-semibold text-[15px] tracking-tight">MaestroNexus</span>
         </div>
 
@@ -199,7 +198,7 @@ export const Header = ({ onFocusNode }: HeaderProps) => {
       <div className="flex items-center gap-2">
         {/* GitHub Star Button */}
         <a
-          href="https://github.com/abhigyanpatwari/MaestroNexus"
+          href="https://github.com/3301x2/MaestroNexus"
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-2 px-3.5 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 rounded-lg text-white text-sm font-medium shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 group"
@@ -245,7 +244,7 @@ export const Header = ({ onFocusNode }: HeaderProps) => {
           `}
         >
           <Sparkles className="w-4 h-4" />
-          <span>Nexus AI</span>
+          <span>Maestro AI</span>
         </button>
       </div>
     </header>

@@ -1,6 +1,6 @@
 # MaestroNexus
 
-<a href="https://trendshift.io/repositories/19809" target="_blank"><img src="https://trendshift.io/api/badge/repositories/19809" alt="abhigyanpatwari%2FMaestroNexus | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
+**A product of [Eternity Fine](https://eternityfine.com/)**
 
 **Building git for agent context.**
 
@@ -23,7 +23,7 @@ https://github.com/user-attachments/assets/172685ba-8e54-4ea7-9ad1-e31a3398da72
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=abhigyanpatwari/MaestroNexus&type=date&legend=top-left)](https://www.star-history.com/#abhigyanpatwari/MaestroNexus&type=date&legend=top-left)
+[![Star History Chart](https://api.star-history.com/svg?repos=3301x2/MaestroNexus&type=date&legend=top-left)](https://www.star-history.com/#3301x2/MaestroNexus&type=date&legend=top-left)
 
 
 ## Two Ways to Use MaestroNexus
@@ -233,7 +233,7 @@ A fully client-side graph explorer and AI chat. No server, no install — your c
 Or run locally:
 
 ```bash
-git clone https://github.com/abhigyanpatwari/maestronexus.git
+git clone https://github.com/3301x2/MaestroNexus.git
 cd maestronexus/maestronexus-web
 npm install
 npm run dev
