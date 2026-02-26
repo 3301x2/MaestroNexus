@@ -14,10 +14,12 @@ import {
   Variable,
   Hash,
   Target,
+  Activity,
 } from 'lucide-react';
 import { useAppState } from '../hooks/useAppState';
 import { FILTERABLE_LABELS, NODE_COLORS, ALL_EDGE_TYPES, EDGE_INFO, type EdgeType } from '../lib/constants';
 import { GraphNode, NodeLabel } from '../core/graph/types';
+import { DiagnosticsPanel } from './DiagnosticsPanel';
 
 // Tree node structure
 interface TreeNode {
@@ -200,7 +202,7 @@ export const FileTreePanel = ({ onFocusNode }: FileTreePanelProps) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
-  const [activeTab, setActiveTab] = useState<'files' | 'filters'>('files');
+  const [activeTab, setActiveTab] = useState<'files' | 'filters' | 'diagnostics'>('files');
 
   // Build file tree from graph
   const fileTree = useMemo(() => {
@@ -292,6 +294,13 @@ export const FileTreePanel = ({ onFocusNode }: FileTreePanelProps) => {
         >
           <Filter className="w-5 h-5" />
         </button>
+        <button
+          onClick={() => { setIsCollapsed(false); setActiveTab('diagnostics'); }}
+          className={`p-2 rounded transition-colors ${activeTab === 'diagnostics' ? 'text-accent bg-accent/10' : 'text-text-secondary hover:text-text-primary hover:bg-hover'}`}
+          title="Diagnostics"
+        >
+          <Activity className="w-5 h-5" />
+        </button>
       </div>
     );
   }
@@ -318,6 +327,15 @@ export const FileTreePanel = ({ onFocusNode }: FileTreePanelProps) => {
               }`}
           >
             Filters
+          </button>
+          <button
+            onClick={() => setActiveTab('diagnostics')}
+            className={`px-2 py-1 text-xs rounded transition-colors ${activeTab === 'diagnostics'
+              ? 'bg-accent/20 text-accent'
+              : 'text-text-secondary hover:text-text-primary hover:bg-hover'
+              }`}
+          >
+            Diagnostics
           </button>
         </div>
         <button
@@ -511,6 +529,10 @@ export const FileTreePanel = ({ onFocusNode }: FileTreePanelProps) => {
             </div>
           </div>
         </div>
+      )}
+
+      {activeTab === 'diagnostics' && (
+        <DiagnosticsPanel />
       )}
 
       {/* Stats footer */}

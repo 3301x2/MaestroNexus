@@ -276,6 +276,23 @@ export const ArchitecturePanel = () => {
   const handleSplitMouseMove = useCallback((e: React.MouseEvent) => { if (!splitIsPanning) return; setSplitPan({ x: e.clientX - splitPanStart.x, y: e.clientY - splitPanStart.y }); }, [splitIsPanning, splitPanStart]);
   const handleSplitMouseUp = useCallback(() => setSplitIsPanning(false), []);
 
+  // Fit mermaid diagram to the split view container
+  const handleSplitResetView = useCallback(() => {
+    if (!splitScrollRef.current || !splitDiagramRef.current) return;
+    const container = splitScrollRef.current;
+    const svg = splitDiagramRef.current.querySelector('svg');
+    if (!svg) { setSplitZoom(1); setSplitPan({ x: 0, y: 0 }); return; }
+    const cw = container.clientWidth;
+    const ch = container.clientHeight;
+    const sw = svg.getBoundingClientRect().width / (splitZoom || 1);
+    const sh = svg.getBoundingClientRect().height / (splitZoom || 1);
+    if (sw === 0 || sh === 0) { setSplitZoom(1); setSplitPan({ x: 0, y: 0 }); return; }
+    const padding = 32;
+    const fitZoom = Math.min((cw - padding) / sw, (ch - padding) / sh, 2);
+    setSplitZoom(Math.max(0.1, fitZoom));
+    setSplitPan({ x: 0, y: 0 });
+  }, [splitZoom]);
+
   useEffect(() => {
     if (canvasView !== 'split') return;
     const handleWheel = (e: WheelEvent) => { e.preventDefault(); setSplitZoom(prev => Math.min(Math.max(0.1, prev + e.deltaY * -0.001 * prev), 10)); };
@@ -339,7 +356,7 @@ export const ArchitecturePanel = () => {
     iframeRef.current.src = iframeFullUrl;
   }, [iframeFullUrl]);
 
-  // Render mermaid for split view
+  // Render mermaid for split view, then auto-fit to container
   useEffect(() => {
     if (canvasView !== 'split' || !expandedCluster?.mermaidCode || !splitDiagramRef.current) return;
     console.log('[Architecture] Rendering mermaid for split view');
@@ -351,6 +368,22 @@ export const ArchitecturePanel = () => {
         const { svg } = await mermaidLib.render(id, expandedCluster.mermaidCode);
         splitDiagramRef.current!.innerHTML = svg;
         console.log('[Architecture] Mermaid rendered successfully');
+        // Auto-fit after render — use rAF so the SVG has layout dimensions
+        requestAnimationFrame(() => {
+          if (!splitScrollRef.current || !splitDiagramRef.current) return;
+          const svgEl = splitDiagramRef.current.querySelector('svg');
+          if (!svgEl) return;
+          const cw = splitScrollRef.current.clientWidth;
+          const ch = splitScrollRef.current.clientHeight;
+          const sw = svgEl.getBoundingClientRect().width;
+          const sh = svgEl.getBoundingClientRect().height;
+          if (sw > 0 && sh > 0) {
+            const padding = 32;
+            const fitZoom = Math.min((cw - padding) / sw, (ch - padding) / sh, 2);
+            setSplitZoom(Math.max(0.1, fitZoom));
+            setSplitPan({ x: 0, y: 0 });
+          }
+        });
       } catch (err) {
         console.error('[Architecture] Mermaid render error:', err);
         if (splitDiagramRef.current) splitDiagramRef.current.innerHTML = '<div class="text-red-400 text-sm p-8 text-center">Failed to render diagram</div>';
@@ -448,17 +481,34 @@ export const ArchitecturePanel = () => {
       const mermaidCode = generateClusterDetailMermaid(archCluster);
       const steps: ProcessStep[] = members.map((m, i) => ({ id: m.id, name: m.name, filePath: m.filePath, stepNumber: i, type: m.type } as ProcessStep & { type: string }));
 
-      console.log('[Architecture] Cluster loaded, opening inline diagram view:', clusterLabel);
-      setDiagramData({ id: clusterId, label: `Cluster: ${clusterLabel}`, steps, mermaidCode });
+      console.log('[Architecture] Cluster loaded:', clusterLabel);
+      const diag = { id: clusterId, label: `Cluster: ${clusterLabel}`, steps, mermaidCode };
+      setDiagramData(diag);
       setDiagramZoom(1);
       setDiagramPan({ x: 0, y: 0 });
-      setCanvasView('diagram');
+
+      // Go directly to split view (mermaid + preview) instead of diagram-only
+      const derivedRoute = deriveRoute(steps);
+      const expandData = { label: diag.label, steps, mermaidCode, derivedRoute };
+
+      if (!previewConfig.isConfigured) {
+        console.log('[Architecture] Not configured — showing inline config');
+        setPendingExpand(expandData);
+        setCfgPort(String(previewConfig.suggestedPort));
+        setCanvasView('config');
+      } else {
+        console.log('[Architecture] Opening split view for:', clusterLabel);
+        setUrlPath(derivedRoute);
+        setSplitZoom(1); setSplitPan({ x: 0, y: 0 });
+        setExpandedCluster(expandData);
+        setCanvasView('split');
+      }
     } catch (error) {
       console.error('[Architecture] Failed to load cluster detail:', error);
     } finally {
       setLoadingCluster(null);
     }
-  }, [clusters, runQuery]);
+  }, [clusters, runQuery, deriveRoute, previewConfig.isConfigured, previewConfig.suggestedPort]);
 
   const handleFocusInGraph = useCallback((nodeIds: string[], processId: string) => {
     if (focusedClusterId === processId) { setHighlightedNodeIds(new Set()); setFocusedClusterId(null); }
@@ -611,7 +661,7 @@ export const ArchitecturePanel = () => {
                   <ZoomIn className="w-3.5 h-3.5" />
                 </button>
               </div>
-              <button onClick={() => { setSplitZoom(1); setSplitPan({ x: 0, y: 0 }); }} className="px-3 py-1.5 text-xs text-text-secondary hover:text-text-primary bg-surface hover:bg-elevated border border-border-subtle rounded-lg transition-all">
+              <button onClick={handleSplitResetView} className="px-3 py-1.5 text-xs text-text-secondary hover:text-text-primary bg-surface hover:bg-elevated border border-border-subtle rounded-lg transition-all" title="Fit to container">
                 Reset
               </button>
             </>
