@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "maestronexus": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "maestronexus@latest", "mcp"]
+    }
+  }
+}
