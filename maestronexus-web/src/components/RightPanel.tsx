@@ -235,6 +235,7 @@ export const RightPanel = () => {
             <GitBranch className="w-3.5 h-3.5" />
             <span>Processes</span>
           </button>
+
         </div>
 
         {/* Close button */}

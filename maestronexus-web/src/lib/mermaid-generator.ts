@@ -145,6 +145,181 @@ export function generateProcessMermaid(process: ProcessData): string {
   return lines.join('\n');
 }
 
+// ── Dependency Flow Diagram ──────────────────────────────────────────────
+
+export interface DepFlowNode {
+  id: string;
+  name: string;
+  label: string; // NodeLabel e.g. 'Function', 'Class', 'File'
+  filePath?: string;
+}
+
+export interface DepFlowEdge {
+  sourceId: string;
+  targetId: string;
+  type: string; // CALLS, IMPORTS, etc.
+}
+
+/**
+ * Generate a Mermaid flowchart showing upstream (dependencies) and
+ * downstream (dependents) for a selected node, up to `depth` hops.
+ */
+export function generateDependencyFlowDiagram(
+  centerId: string,
+  nodes: DepFlowNode[],
+  edges: DepFlowEdge[],
+  depth: number = 2,
+): string {
+  if (nodes.length === 0) {
+    return 'graph TD\n  A[No dependencies found]';
+  }
+
+  // Build adjacency maps
+  const downstream = new Map<string, { target: string; type: string }[]>(); // node → things it calls/uses
+  const upstream = new Map<string, { source: string; type: string }[]>();   // node → things that call/use it
+
+  for (const e of edges) {
+    if (!downstream.has(e.sourceId)) downstream.set(e.sourceId, []);
+    downstream.get(e.sourceId)!.push({ target: e.targetId, type: e.type });
+    if (!upstream.has(e.targetId)) upstream.set(e.targetId, []);
+    upstream.get(e.targetId)!.push({ source: e.sourceId, type: e.type });
+  }
+
+  // BFS to collect nodes within depth hops
+  const nodeSet = new Set<string>();
+  const edgeSet = new Set<string>(); // "sourceId->targetId" dedup
+
+  // BFS downstream (what center depends on)
+  const downQueue: { id: string; d: number }[] = [{ id: centerId, d: 0 }];
+  const downVisited = new Set<string>();
+  downVisited.add(centerId);
+  while (downQueue.length > 0) {
+    const { id, d } = downQueue.shift()!;
+    nodeSet.add(id);
+    if (d >= depth) continue;
+    for (const { target, type } of downstream.get(id) || []) {
+      const key = `${id}->${target}`;
+      edgeSet.add(`${key}|${type}`);
+      nodeSet.add(target);
+      if (!downVisited.has(target)) {
+        downVisited.add(target);
+        downQueue.push({ id: target, d: d + 1 });
+      }
+    }
+  }
+
+  // BFS upstream (what depends on center)
+  const upQueue: { id: string; d: number }[] = [{ id: centerId, d: 0 }];
+  const upVisited = new Set<string>();
+  upVisited.add(centerId);
+  while (upQueue.length > 0) {
+    const { id, d } = upQueue.shift()!;
+    nodeSet.add(id);
+    if (d >= depth) continue;
+    for (const { source, type } of upstream.get(id) || []) {
+      const key = `${source}->${id}`;
+      edgeSet.add(`${key}|${type}`);
+      nodeSet.add(source);
+      if (!upVisited.has(source)) {
+        upVisited.add(source);
+        upQueue.push({ id: source, d: d + 1 });
+      }
+    }
+  }
+
+  const nodeMap = new Map(nodes.map(n => [n.id, n]));
+  const lines: string[] = ['graph TD'];
+
+  // Styles
+  lines.push('  %% Styles');
+  lines.push('  classDef default fill:#1e293b,stroke:#94a3b8,stroke-width:2px,color:#f8fafc,rx:8,ry:8,font-size:14px;');
+  lines.push('  classDef center fill:#1e293b,stroke:#22d3ee,stroke-width:4px,color:#22d3ee,rx:8,ry:8,font-size:14px;');
+  lines.push('  classDef upstream fill:#1e293b,stroke:#34d399,stroke-width:2px,color:#f8fafc,rx:8,ry:8,font-size:14px;');
+  lines.push('  classDef downstream fill:#1e293b,stroke:#f472b6,stroke-width:2px,color:#f8fafc,rx:8,ry:8,font-size:14px;');
+
+  const sanitize = (s: string) => s.replace(/["\[\]<>{}()#]/g, '').substring(0, 35);
+  const mermaidId = (id: string) => 'n_' + id.replace(/[^a-zA-Z0-9_]/g, '_');
+
+  // Emit nodes
+  for (const id of nodeSet) {
+    const node = nodeMap.get(id);
+    if (!node) continue;
+    const mid = mermaidId(id);
+    const name = sanitize(node.name);
+    const typeTag = node.label === 'File' ? '📄' : node.label === 'Class' ? '🔷' : node.label === 'Method' ? '🔧' : '⚡';
+
+    let cls = 'default';
+    if (id === centerId) cls = 'center';
+    else if (upVisited.has(id) && !downVisited.has(id)) cls = 'upstream';
+    else if (downVisited.has(id) && !upVisited.has(id)) cls = 'downstream';
+    else if (upVisited.has(id)) cls = 'upstream';
+
+    lines.push(`  ${mid}["${typeTag} ${name}"]:::${cls}`);
+  }
+
+  // Emit edges
+  for (const entry of edgeSet) {
+    const [pathPart, type] = entry.split('|');
+    const [sourceId, targetId] = pathPart.split('->');
+    const sId = mermaidId(sourceId);
+    const tId = mermaidId(targetId);
+    const edgeLabel = type === 'CALLS' ? 'calls' : type === 'IMPORTS' ? 'imports' : type.toLowerCase();
+    lines.push(`  ${sId} -->|${edgeLabel}| ${tId}`);
+  }
+
+  // Click bindings (for node selection callback)
+  for (const id of nodeSet) {
+    const mid = mermaidId(id);
+    lines.push(`  click ${mid} callback "${id}"`);
+  }
+
+  return lines.join('\n');
+}
+
+/**
+ * Compute the maximum useful depth for a node — the furthest hop
+ * reachable in either direction (upstream or downstream).
+ * Returns at least 1 if the node has any connections, 0 otherwise.
+ */
+export function computeMaxDepth(
+  centerId: string,
+  edges: DepFlowEdge[],
+  cap: number = 6,
+): number {
+  const downstream = new Map<string, string[]>();
+  const upstream = new Map<string, string[]>();
+
+  for (const e of edges) {
+    if (!downstream.has(e.sourceId)) downstream.set(e.sourceId, []);
+    downstream.get(e.sourceId)!.push(e.targetId);
+    if (!upstream.has(e.targetId)) upstream.set(e.targetId, []);
+    upstream.get(e.targetId)!.push(e.sourceId);
+  }
+
+  const bfsMaxDepth = (start: string, adj: Map<string, string[]>): number => {
+    const visited = new Set<string>();
+    visited.add(start);
+    const queue: { id: string; d: number }[] = [{ id: start, d: 0 }];
+    let maxD = 0;
+    while (queue.length > 0) {
+      const { id, d } = queue.shift()!;
+      if (d > maxD) maxD = d;
+      if (d >= cap) continue;
+      for (const next of adj.get(id) || []) {
+        if (!visited.has(next)) {
+          visited.add(next);
+          queue.push({ id: next, d: d + 1 });
+        }
+      }
+    }
+    return maxD;
+  };
+
+  const downMax = bfsMaxDepth(centerId, downstream);
+  const upMax = bfsMaxDepth(centerId, upstream);
+  return Math.min(Math.max(downMax, upMax), cap);
+}
+
 /**
  * Simple linear mermaid for quick preview
  */

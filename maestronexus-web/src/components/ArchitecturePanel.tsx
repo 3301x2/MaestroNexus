@@ -13,8 +13,8 @@ import {
   LayoutDashboard, X, Layers, Loader2,
   ZoomIn, ZoomOut, Maximize2, ArrowRight, ArrowLeft, Search,
   RefreshCw, Settings2, ChevronDown, ChevronRight, AlertTriangle,
-  Copy, Check, Globe, ExternalLink, Wifi, WifiOff, Zap,
-  Focus, GitBranch,
+  Globe, ExternalLink, Wifi, WifiOff, Zap,
+  Focus,
 } from 'lucide-react';
 import { useAppState } from '../hooks/useAppState';
 import { usePreviewConfig, type PreviewConfig } from '../hooks/usePreviewConfig';
@@ -23,6 +23,7 @@ import {
   generateClusterDetailMermaid,
   type ArchitectureCluster,
 } from '../lib/architecture-generator';
+import { DependencyFlowPanel } from './DependencyFlowPanel';
 
 // ── Column color themes (use node-type colors from the design system) ──────
 const COLUMN_THEMES = [
@@ -74,7 +75,7 @@ function classifyIntoLayers(
 }
 
 export const ArchitecturePanel = () => {
-  const { graph, runQuery, setHighlightedNodeIds, highlightedNodeIds, setArchitectureOpen } = useAppState();
+  const { graph, runQuery, setSelectedNode, setHighlightedNodeIds, highlightedNodeIds, setArchitectureOpen } = useAppState();
   const previewConfig = usePreviewConfig();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -91,8 +92,6 @@ export const ArchitecturePanel = () => {
 
   // Inline diagram view state (replaces ProcessFlowModal)
   const [diagramData, setDiagramData] = useState<{ id: string; label: string; steps: ProcessStep[]; mermaidCode: string } | null>(null);
-  const [copiedMermaid, setCopiedMermaid] = useState(false);
-
   // Columns zoom/pan
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -101,22 +100,8 @@ export const ArchitecturePanel = () => {
   const canvasRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
-  // Inline diagram view refs
-  const diagramViewRef = useRef<HTMLDivElement>(null);
-  const diagramScrollRef = useRef<HTMLDivElement>(null);
-  const [diagramZoom, setDiagramZoom] = useState(1);
-  const [diagramPan, setDiagramPan] = useState({ x: 0, y: 0 });
-  const [diagramIsPanning, setDiagramIsPanning] = useState(false);
-  const [diagramPanStart, setDiagramPanStart] = useState({ x: 0, y: 0 });
-
   // Split view state
-  const splitDiagramRef = useRef<HTMLDivElement>(null);
-  const splitScrollRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const [splitZoom, setSplitZoom] = useState(1);
-  const [splitPan, setSplitPan] = useState({ x: 0, y: 0 });
-  const [splitIsPanning, setSplitIsPanning] = useState(false);
-  const [splitPanStart, setSplitPanStart] = useState({ x: 0, y: 0 });
   const [urlPath, setUrlPath] = useState('/');
   const [urlInput, setUrlInput] = useState('');
   const [iframeLoading, setIframeLoading] = useState(true);
@@ -226,80 +211,6 @@ export const ArchitecturePanel = () => {
     setZoom(fitZoom); setPan({ x: (cw - sw * fitZoom) / 2, y: (ch - sh * fitZoom) / 2 });
   }, []);
 
-  // ── Inline diagram view pan/zoom ────────────────────────────────────
-  const handleDiagramMouseDown = useCallback((e: React.MouseEvent) => { setDiagramIsPanning(true); setDiagramPanStart({ x: e.clientX - diagramPan.x, y: e.clientY - diagramPan.y }); }, [diagramPan]);
-  const handleDiagramMouseMove = useCallback((e: React.MouseEvent) => { if (!diagramIsPanning) return; setDiagramPan({ x: e.clientX - diagramPanStart.x, y: e.clientY - diagramPanStart.y }); }, [diagramIsPanning, diagramPanStart]);
-  const handleDiagramMouseUp = useCallback(() => setDiagramIsPanning(false), []);
-
-  useEffect(() => {
-    if (canvasView !== 'diagram') return;
-    const handleWheel = (e: WheelEvent) => { e.preventDefault(); setDiagramZoom(prev => Math.min(Math.max(0.1, prev + e.deltaY * -0.001 * prev), 10)); };
-    const el = diagramScrollRef.current;
-    if (el) { el.addEventListener('wheel', handleWheel, { passive: false }); return () => el.removeEventListener('wheel', handleWheel); }
-  }, [canvasView]);
-
-  // Render mermaid for inline diagram view
-  useEffect(() => {
-    if (canvasView !== 'diagram' || !diagramData?.mermaidCode || !diagramViewRef.current) return;
-    console.log('[Architecture] Rendering mermaid for inline diagram view:', diagramData.label);
-    const render = async () => {
-      try {
-        const { default: mermaidLib } = await import('mermaid');
-        mermaidLib.initialize({
-          startOnLoad: false,
-          suppressErrorRendering: true,
-          maxTextSize: 900000,
-          theme: 'base',
-          themeVariables: {
-            primaryColor: '#1e293b', primaryTextColor: '#f1f5f9', primaryBorderColor: '#22d3ee',
-            lineColor: '#94a3b8', secondaryColor: '#1e293b', tertiaryColor: '#0f172a',
-            mainBkg: '#1e293b', nodeBorder: '#22d3ee', clusterBkg: '#1e293b',
-            clusterBorder: '#475569', titleColor: '#f1f5f9', edgeLabelBackground: '#0f172a',
-          },
-          flowchart: { curve: 'basis', padding: 50, nodeSpacing: 120, rankSpacing: 140, htmlLabels: true },
-        });
-        const id = `diagram-inline-${Date.now()}`;
-        diagramViewRef.current!.innerHTML = '';
-        const { svg } = await mermaidLib.render(id, diagramData.mermaidCode);
-        diagramViewRef.current!.innerHTML = svg;
-        console.log('[Architecture] Inline diagram rendered successfully');
-      } catch (err) {
-        console.error('[Architecture] Inline diagram render error:', err);
-        if (diagramViewRef.current) diagramViewRef.current.innerHTML = '<div class="text-red-400 text-sm p-8 text-center">Failed to render diagram</div>';
-      }
-    };
-    render();
-  }, [canvasView, diagramData?.mermaidCode, diagramData?.label]);
-
-  // ── Split view diagram pan ───────────────────────────────────────────
-  const handleSplitMouseDown = useCallback((e: React.MouseEvent) => { setSplitIsPanning(true); setSplitPanStart({ x: e.clientX - splitPan.x, y: e.clientY - splitPan.y }); }, [splitPan]);
-  const handleSplitMouseMove = useCallback((e: React.MouseEvent) => { if (!splitIsPanning) return; setSplitPan({ x: e.clientX - splitPanStart.x, y: e.clientY - splitPanStart.y }); }, [splitIsPanning, splitPanStart]);
-  const handleSplitMouseUp = useCallback(() => setSplitIsPanning(false), []);
-
-  // Fit mermaid diagram to the split view container
-  const handleSplitResetView = useCallback(() => {
-    if (!splitScrollRef.current || !splitDiagramRef.current) return;
-    const container = splitScrollRef.current;
-    const svg = splitDiagramRef.current.querySelector('svg');
-    if (!svg) { setSplitZoom(1); setSplitPan({ x: 0, y: 0 }); return; }
-    const cw = container.clientWidth;
-    const ch = container.clientHeight;
-    const sw = svg.getBoundingClientRect().width / (splitZoom || 1);
-    const sh = svg.getBoundingClientRect().height / (splitZoom || 1);
-    if (sw === 0 || sh === 0) { setSplitZoom(1); setSplitPan({ x: 0, y: 0 }); return; }
-    const padding = 32;
-    const fitZoom = Math.min((cw - padding) / sw, (ch - padding) / sh, 2);
-    setSplitZoom(Math.max(0.1, fitZoom));
-    setSplitPan({ x: 0, y: 0 });
-  }, [splitZoom]);
-
-  useEffect(() => {
-    if (canvasView !== 'split') return;
-    const handleWheel = (e: WheelEvent) => { e.preventDefault(); setSplitZoom(prev => Math.min(Math.max(0.1, prev + e.deltaY * -0.001 * prev), 10)); };
-    const el = splitScrollRef.current;
-    if (el) { el.addEventListener('wheel', handleWheel, { passive: false }); return () => el.removeEventListener('wheel', handleWheel); }
-  }, [canvasView]);
-
   // ── Split view iframe ────────────────────────────────────────────────
   const previewBaseUrl = previewConfig.config?.baseUrl || DEFAULT_PREVIEW_URL;
 
@@ -356,42 +267,6 @@ export const ArchitecturePanel = () => {
     iframeRef.current.src = iframeFullUrl;
   }, [iframeFullUrl]);
 
-  // Render mermaid for split view, then auto-fit to container
-  useEffect(() => {
-    if (canvasView !== 'split' || !expandedCluster?.mermaidCode || !splitDiagramRef.current) return;
-    console.log('[Architecture] Rendering mermaid for split view');
-    const render = async () => {
-      try {
-        const { default: mermaidLib } = await import('mermaid');
-        const id = `split-mermaid-${Date.now()}`;
-        splitDiagramRef.current!.innerHTML = '';
-        const { svg } = await mermaidLib.render(id, expandedCluster.mermaidCode);
-        splitDiagramRef.current!.innerHTML = svg;
-        console.log('[Architecture] Mermaid rendered successfully');
-        // Auto-fit after render — use rAF so the SVG has layout dimensions
-        requestAnimationFrame(() => {
-          if (!splitScrollRef.current || !splitDiagramRef.current) return;
-          const svgEl = splitDiagramRef.current.querySelector('svg');
-          if (!svgEl) return;
-          const cw = splitScrollRef.current.clientWidth;
-          const ch = splitScrollRef.current.clientHeight;
-          const sw = svgEl.getBoundingClientRect().width;
-          const sh = svgEl.getBoundingClientRect().height;
-          if (sw > 0 && sh > 0) {
-            const padding = 32;
-            const fitZoom = Math.min((cw - padding) / sw, (ch - padding) / sh, 2);
-            setSplitZoom(Math.max(0.1, fitZoom));
-            setSplitPan({ x: 0, y: 0 });
-          }
-        });
-      } catch (err) {
-        console.error('[Architecture] Mermaid render error:', err);
-        if (splitDiagramRef.current) splitDiagramRef.current.innerHTML = '<div class="text-red-400 text-sm p-8 text-center">Failed to render diagram</div>';
-      }
-    };
-    render();
-  }, [canvasView, expandedCluster?.mermaidCode]);
-
   // ── Inline config helpers ────────────────────────────────────────────
   const cfgBuildUrl = useCallback(() => {
     if (cfgHostMode === 'deployed') return cfgDeployedUrl.replace(/\/$/, '');
@@ -420,7 +295,6 @@ export const ArchitecturePanel = () => {
     if (pendingExpand) {
       console.log('[Architecture] Config saved, opening split view for:', pendingExpand.label);
       setUrlPath(pendingExpand.derivedRoute);
-      setSplitZoom(1); setSplitPan({ x: 0, y: 0 });
       setExpandedCluster(pendingExpand);
       setPendingExpand(null);
       setCanvasView('split');
@@ -456,7 +330,6 @@ export const ArchitecturePanel = () => {
     } else {
       console.log('[Architecture] Already configured — opening split view');
       setUrlPath(derivedRoute);
-      setSplitZoom(1); setSplitPan({ x: 0, y: 0 });
       setExpandedCluster(expandData);
       setCanvasView('split');
     }
@@ -484,8 +357,15 @@ export const ArchitecturePanel = () => {
       console.log('[Architecture] Cluster loaded:', clusterLabel);
       const diag = { id: clusterId, label: `Cluster: ${clusterLabel}`, steps, mermaidCode };
       setDiagramData(diag);
-      setDiagramZoom(1);
-      setDiagramPan({ x: 0, y: 0 });
+
+      // Auto-select the first member node so DependencyFlowPanel has something to show
+      if (members.length > 0 && graph) {
+        const firstMember = graph.nodes.find(n => n.id === members[0].id);
+        if (firstMember) {
+          setSelectedNode(firstMember);
+          setHighlightedNodeIds(new Set([firstMember.id]));
+        }
+      }
 
       // Go directly to split view (mermaid + preview) instead of diagram-only
       const derivedRoute = deriveRoute(steps);
@@ -499,7 +379,6 @@ export const ArchitecturePanel = () => {
       } else {
         console.log('[Architecture] Opening split view for:', clusterLabel);
         setUrlPath(derivedRoute);
-        setSplitZoom(1); setSplitPan({ x: 0, y: 0 });
         setExpandedCluster(expandData);
         setCanvasView('split');
       }
@@ -516,14 +395,6 @@ export const ArchitecturePanel = () => {
   }, [focusedClusterId, setHighlightedNodeIds]);
 
   useEffect(() => { if (highlightedNodeIds.size === 0 && focusedClusterId !== null) setFocusedClusterId(null); }, [highlightedNodeIds, focusedClusterId]);
-
-  // ── Copy mermaid code ────────────────────────────────────────────────
-  const handleCopyMermaid = useCallback(() => {
-    if (!diagramData?.mermaidCode) return;
-    navigator.clipboard.writeText(diagramData.mermaidCode);
-    setCopiedMermaid(true);
-    setTimeout(() => setCopiedMermaid(false), 2000);
-  }, [diagramData?.mermaidCode]);
 
   // ── Escape key ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -591,8 +462,8 @@ export const ArchitecturePanel = () => {
                 </h2>
                 <p className="text-[11px] text-text-muted">
                   {canvasView === 'config' ? 'Tell MaestroNexus where your app is running'
-                    : canvasView === 'diagram' ? `${diagramData?.steps.length || 0} symbols — Architecture Diagram`
-                    : `${expandedCluster?.steps.length || 0} symbols — Diagram + Live Preview`}
+                    : canvasView === 'diagram' ? `${diagramData?.steps.length || 0} symbols — Dependency Flow`
+                    : `${expandedCluster?.steps.length || 0} symbols — Dep Flow + Live Preview`}
                 </p>
               </div>
             </>
@@ -613,21 +484,7 @@ export const ArchitecturePanel = () => {
         <div className="flex items-center gap-2">
           {canvasView === 'diagram' && (
             <>
-              {/* Zoom controls */}
-              <div className="flex items-center gap-1 bg-surface border border-border-subtle rounded-lg p-1">
-                <button onClick={() => setDiagramZoom(prev => Math.max(prev * 0.7, 0.1))} className="p-1.5 text-text-secondary hover:text-text-primary hover:bg-hover rounded-md transition-all">
-                  <ZoomOut className="w-3.5 h-3.5" />
-                </button>
-                <span className="px-2 text-[11px] text-text-secondary font-mono min-w-[3rem] text-center">{Math.round(diagramZoom * 100)}%</span>
-                <button onClick={() => setDiagramZoom(prev => Math.min(prev * 1.3, 10))} className="p-1.5 text-text-secondary hover:text-text-primary hover:bg-hover rounded-md transition-all">
-                  <ZoomIn className="w-3.5 h-3.5" />
-                </button>
-              </div>
-              <button onClick={() => { setDiagramZoom(1); setDiagramPan({ x: 0, y: 0 }); }} className="px-3 py-1.5 text-xs text-text-secondary hover:text-text-primary bg-surface hover:bg-elevated border border-border-subtle rounded-lg transition-all">
-                Reset
-              </button>
-              <div className="w-px h-5 bg-border-subtle" />
-              {/* Focus in graph */}
+              {/* Focus cluster members in graph */}
               {diagramData && diagramData.steps.length > 0 && (
                 <button
                   onClick={() => handleFocusInGraph(diagramData.steps.map(s => s.id), diagramData.id)}
@@ -637,12 +494,7 @@ export const ArchitecturePanel = () => {
                   {focusedClusterId === diagramData.id ? 'Focused' : 'Focus'}
                 </button>
               )}
-              {/* Copy mermaid */}
-              <button onClick={handleCopyMermaid} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-text-secondary hover:text-text-primary bg-surface hover:bg-elevated border border-border-subtle rounded-lg transition-all">
-                {copiedMermaid ? <Check className="w-3.5 h-3.5 text-node-function" /> : <Copy className="w-3.5 h-3.5" />}
-                {copiedMermaid ? 'Copied' : 'Copy Mermaid'}
-              </button>
-              {/* Open as Page */}
+              {/* Open split view with preview */}
               <button onClick={handleExpand} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-accent hover:bg-accent-dim rounded-lg transition-all shadow-sm shadow-accent/20">
                 <Maximize2 className="w-3.5 h-3.5" />
                 Open as Page
@@ -650,21 +502,7 @@ export const ArchitecturePanel = () => {
             </>
           )}
           {canvasView === 'split' && (
-            <>
-              <span className="text-[10px] text-text-muted mr-1">Diagram:</span>
-              <div className="flex items-center gap-1 bg-surface border border-border-subtle rounded-lg p-1">
-                <button onClick={() => setSplitZoom(prev => Math.max(prev * 0.7, 0.1))} className="p-1.5 text-text-secondary hover:text-text-primary hover:bg-hover rounded-md transition-all">
-                  <ZoomOut className="w-3.5 h-3.5" />
-                </button>
-                <span className="px-2 text-[11px] text-text-secondary font-mono min-w-[3rem] text-center">{Math.round(splitZoom * 100)}%</span>
-                <button onClick={() => setSplitZoom(prev => Math.min(prev * 1.3, 10))} className="p-1.5 text-text-secondary hover:text-text-primary hover:bg-hover rounded-md transition-all">
-                  <ZoomIn className="w-3.5 h-3.5" />
-                </button>
-              </div>
-              <button onClick={handleSplitResetView} className="px-3 py-1.5 text-xs text-text-secondary hover:text-text-primary bg-surface hover:bg-elevated border border-border-subtle rounded-lg transition-all" title="Fit to container">
-                Reset
-              </button>
-            </>
+            <span className="text-[11px] text-text-muted">Select a node on the graph to see its dependency flow</span>
           )}
           {canvasView === 'columns' && (
             <>
@@ -682,44 +520,17 @@ export const ArchitecturePanel = () => {
 
       {/* ── Canvas area ────────────────────────────────────────── */}
       {canvasView === 'diagram' && diagramData ? (
-        /* ── INLINE DIAGRAM VIEW (replaces ProcessFlowModal) ── */
-        <div className="flex-1 relative overflow-hidden">
-          <div
-            ref={diagramScrollRef}
-            className="w-full h-full overflow-hidden"
-            style={{ cursor: diagramIsPanning ? 'grabbing' : 'grab' }}
-            onMouseDown={handleDiagramMouseDown}
-            onMouseMove={handleDiagramMouseMove}
-            onMouseUp={handleDiagramMouseUp}
-            onMouseLeave={handleDiagramMouseUp}
-          >
-            <div
-              className="flex items-center justify-center min-w-full min-h-full"
-              style={{ transform: `translate(${diagramPan.x}px, ${diagramPan.y}px) scale(${diagramZoom})`, transformOrigin: 'center center' }}
-            >
-              <div
-                ref={diagramViewRef}
-                className="[&_.edgePath_.path]:stroke-slate-400 [&_.edgePath_.path]:stroke-2 [&_.marker]:fill-slate-400 p-8"
-              />
-            </div>
-          </div>
+        /* ── DEPENDENCY FLOW VIEW (replaces old mermaid diagram) ── */
+        <div className="flex-1 relative overflow-hidden flex flex-col">
+          <DependencyFlowPanel />
         </div>
 
       ) : canvasView === 'split' && expandedCluster ? (
         /* ── SPLIT VIEW ──────────────────────────────────────── */
         <div className="flex-1 flex min-h-0">
-          {/* Left: Mermaid */}
-          <div className="w-1/2 border-r border-border-subtle relative overflow-hidden">
-            <div className="absolute top-3 left-3 z-10 px-2.5 py-1 bg-deep/90 backdrop-blur-sm border border-border-subtle rounded-lg text-[11px] text-text-secondary font-medium">
-              Architecture Diagram
-            </div>
-            <div ref={splitScrollRef} className="w-full h-full overflow-hidden" style={{ cursor: splitIsPanning ? 'grabbing' : 'grab' }}
-              onMouseDown={handleSplitMouseDown} onMouseMove={handleSplitMouseMove} onMouseUp={handleSplitMouseUp} onMouseLeave={handleSplitMouseUp}>
-              <div className="flex items-center justify-center min-w-full min-h-full"
-                style={{ transform: `translate(${splitPan.x}px, ${splitPan.y}px) scale(${splitZoom})`, transformOrigin: 'center center' }}>
-                <div ref={splitDiagramRef} className="[&_.edgePath_.path]:stroke-slate-400 [&_.edgePath_.path]:stroke-2 [&_.marker]:fill-slate-400 p-8" />
-              </div>
-            </div>
+          {/* Left: Dependency Flow */}
+          <div className="w-1/2 border-r border-border-subtle relative overflow-hidden flex flex-col">
+            <DependencyFlowPanel />
           </div>
 
           {/* Right: Iframe */}
