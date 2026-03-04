@@ -95,6 +95,7 @@ interface AppState {
   aiCitationHighlightedNodeIds: Set<string>;
   aiToolHighlightedNodeIds: Set<string>;
   blastRadiusNodeIds: Set<string>;
+  setBlastRadiusNodeIds: (ids: Set<string>) => void;
   isAIHighlightsEnabled: boolean;
   toggleAIHighlights: () => void;
   clearAIToolHighlights: () => void;
@@ -1078,6 +1079,7 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
     aiCitationHighlightedNodeIds,
     aiToolHighlightedNodeIds,
     blastRadiusNodeIds,
+    setBlastRadiusNodeIds,
     isAIHighlightsEnabled,
     toggleAIHighlights,
     clearAIToolHighlights,

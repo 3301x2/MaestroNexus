@@ -61,7 +61,7 @@ const TYPE_ICONS: Record<DiagnosticIssue['type'], typeof AlertCircle> = {
 // ── Component ────────────────────────────────────────────────────────────
 
 export function DiagnosticsPanel() {
-  const { graph, setHighlightedNodeIds, triggerNodeAnimation } = useAppState();
+  const { graph, setHighlightedNodeIds, setBlastRadiusNodeIds, triggerNodeAnimation } = useAppState();
   const { issues, summary, isAnalyzing, lastAnalyzed, error, analyze } = useDiagnostics();
 
   const [expandedSeverity, setExpandedSeverity] = useState<Record<Severity, boolean>>({
@@ -79,8 +79,10 @@ export function DiagnosticsPanel() {
 
   const handleIssueClick = (issue: DiagnosticIssue) => {
     if (issue.nodeIds.length > 0) {
+      // Use red blast-radius highlighting for dead code / critical issues
+      setBlastRadiusNodeIds(new Set(issue.nodeIds));
       setHighlightedNodeIds(new Set(issue.nodeIds));
-      triggerNodeAnimation(issue.nodeIds, 'pulse');
+      triggerNodeAnimation(issue.nodeIds, 'glow');
     }
   };
 
