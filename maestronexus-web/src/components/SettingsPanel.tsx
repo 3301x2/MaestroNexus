@@ -222,6 +222,7 @@ export const SettingsPanel = ({ isOpen, onClose, onSettingsSaved, backendUrl, is
   // OpenRouter models state
   const [openRouterModels, setOpenRouterModels] = useState<Array<{ id: string; name: string }>>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
+  const saveStatusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load settings when panel opens
   useEffect(() => {
@@ -231,6 +232,13 @@ export const SettingsPanel = ({ isOpen, onClose, onSettingsSaved, backendUrl, is
       setOllamaError(null);
     }
   }, [isOpen]);
+
+  // Clear pending save-status timer on unmount
+  useEffect(() => {
+    return () => {
+      if (saveStatusTimerRef.current) clearTimeout(saveStatusTimerRef.current);
+    };
+  }, []);
 
   // Check Ollama connection when provider is selected or base URL changes
   const checkOllamaConnection = useCallback(async (baseUrl: string) => {
@@ -269,7 +277,11 @@ export const SettingsPanel = ({ isOpen, onClose, onSettingsSaved, backendUrl, is
       saveSettings(settings);
       setSaveStatus('saved');
       onSettingsSaved?.();
-      setTimeout(() => setSaveStatus('idle'), 2000);
+      if (saveStatusTimerRef.current) clearTimeout(saveStatusTimerRef.current);
+      saveStatusTimerRef.current = setTimeout(() => {
+        saveStatusTimerRef.current = null;
+        setSaveStatus('idle');
+      }, 2000);
     } catch {
       setSaveStatus('error');
     }

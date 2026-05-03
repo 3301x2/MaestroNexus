@@ -45,6 +45,7 @@ const AppContent = () => {
   const backend = useBackend();
 
   const graphCanvasRef = useRef<GraphCanvasHandle>(null);
+  const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleFileSelect = useCallback(async (file: File) => {
     const projectName = file.name.replace('.zip', '');
@@ -84,7 +85,9 @@ const AppContent = () => {
         message: 'Error processing file',
         detail: error instanceof Error ? error.message : 'Unknown error',
       });
-      setTimeout(() => {
+      if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
+      errorTimerRef.current = setTimeout(() => {
+        errorTimerRef.current = null;
         setViewMode('onboarding');
         setProgress(null);
       }, 3000);
@@ -127,7 +130,9 @@ const AppContent = () => {
         message: 'Error processing repository',
         detail: error instanceof Error ? error.message : 'Unknown error',
       });
-      setTimeout(() => {
+      if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
+      errorTimerRef.current = setTimeout(() => {
+        errorTimerRef.current = null;
         setViewMode('onboarding');
         setProgress(null);
       }, 3000);
@@ -185,7 +190,9 @@ const AppContent = () => {
         message: 'Error loading from server',
         detail: error instanceof Error ? error.message : 'Unknown error',
       });
-      setTimeout(() => {
+      if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
+      errorTimerRef.current = setTimeout(() => {
+        errorTimerRef.current = null;
         setViewMode('onboarding');
         setProgress(null);
       }, 3000);

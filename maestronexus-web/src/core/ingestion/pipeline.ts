@@ -31,9 +31,13 @@ export const runIngestionPipeline = async ( file: File, onProgress: (progress: P
     });
   }, 200);
   
-  const files = await extractZip(file);
-  clearInterval(fakeExtractionProgress);
-  
+  let files: FileEntry[];
+  try {
+    files = await extractZip(file);
+  } finally {
+    clearInterval(fakeExtractionProgress);
+  }
+
   // Continue with common pipeline
   return runPipelineFromFiles(files, onProgress);
 };

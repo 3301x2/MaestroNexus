@@ -74,6 +74,21 @@ export const CodeReferencesPanel = ({ onFocusNode }: CodeReferencesPanelProps) =
     }
   }, [panelWidth]);
 
+  const resizeListenersRef = useRef<{ onMove: (ev: MouseEvent) => void; onUp: () => void } | null>(null);
+
+  // Clean up resize listeners if component unmounts mid-drag
+  useEffect(() => {
+    return () => {
+      if (resizeListenersRef.current) {
+        window.removeEventListener('mousemove', resizeListenersRef.current.onMove);
+        window.removeEventListener('mouseup', resizeListenersRef.current.onUp);
+        resizeListenersRef.current = null;
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      }
+    };
+  }, []);
+
   const startResize = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -91,12 +106,14 @@ export const CodeReferencesPanel = ({ onFocusNode }: CodeReferencesPanelProps) =
 
     const onUp = () => {
       resizeRef.current = null;
+      resizeListenersRef.current = null;
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
     };
 
+    resizeListenersRef.current = { onMove, onUp };
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
   }, [panelWidth]);
