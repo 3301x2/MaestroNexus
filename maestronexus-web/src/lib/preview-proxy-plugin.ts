@@ -159,8 +159,9 @@ export function previewProxyPlugin(): Plugin {
     };
 
     // Remove headers that would confuse the target
-    delete options.headers!['origin'];
-    delete options.headers!['referer'];
+    const proxyHeaders = options.headers as Record<string, string | string[] | undefined>;
+    delete proxyHeaders['origin'];
+    delete proxyHeaders['referer'];
 
     const proxyReq = transport.request(options, (proxyRes) => {
       // Rewrite any Location headers so redirects stay within the proxy
@@ -377,7 +378,7 @@ export function previewProxyPlugin(): Plugin {
         const base = currentTarget.replace(/\/$/, '');
         try {
           const targetUrl = new URL(targetPath, base);
-          proxyWebSocket(req, socket, head, targetUrl);
+          proxyWebSocket(req, socket as import('node:net').Socket, head, targetUrl);
         } catch {
           socket.destroy();
         }
